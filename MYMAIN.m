@@ -4,46 +4,98 @@ close all
 
 %% SAMPLING TIME
 Ts=0.001;
+nTrajectories = 3;
+ttot = 0;
+xf = 0; yf = 0;
+totalTime = 0;
+time_vec = [];
 
-%% PLANNER
-t_iniz = 0;
-% ttot=20; %duration
-tdead=10; %dead time to evaluate the steady-state
+x_d = [];
+dot_x_d = [];
+ddot_x_d = [];
+dddot_x_d = [];
 
-%
-x0=0; y0=0; z0=-1;
-xf=1; yf=1; zf=-1;
-dot_x0=0; dot_y0=0; dot_z0=0;
-alfa=pi;
-vel = 0.3;
-ttot = norm([xf,yf]-[x0,y0])/vel %duration = norm / velocity
+y_d = [];
+dot_y_d = [];
+ddot_y_d = [];
+dddot_y_d = [];
 
-[s_d,dot_s_d,ddot_s_d,dddot_s_d,tot_time,t] = planner2(Ts,t_iniz,ttot,tdead);
+z_d = [];
+dot_z_d = [];
+ddot_z_d = [];
+dddot_z_d = [];
 
-% figure
-% plot(t,s_d)
-% 
-% figure
-% plot(t,dot_s_d)
-% 
-% figure
-% plot(t,ddot_s_d)
-% 
-% figure
-% plot(t,dddot_s_d)
+psi_d = [];
+dot_psi_d = [];
+ddot_psi_d = [];
+dddot_psi_d = [];
 
+for i=1:nTrajectories
+    %% PLANNER
 
+    % Note that t_iniz=0 because every trajectory is computed
+    % as if it started from t=0.
+    % But later, they will be set to start at t=totalTime
+    t_iniz = 0;
+    x0=xf; y0=yf; z0=-1;
+    xf=0+i; yf=0+i; zf=-1;
+    dot_x0=0; dot_y0=0; dot_z0=0;
+    alfa=pi;
 
-[psi_d,dot_psi_d,ddot_psi_d,dddot_psi_d] = rectilinear_path_convex(s_d,dot_s_d,ddot_s_d,dddot_s_d,0,deg2rad(0));
-[x_d,dot_x_d,ddot_x_d,dddot_x_d]=rectilinear_path_convex(s_d,dot_s_d,ddot_s_d,dddot_s_d,x0,xf);
-[y_d,dot_y_d,ddot_y_d,dddot_y_d]=rectilinear_path_convex(s_d,dot_s_d,ddot_s_d,dddot_s_d,y0,yf);
-[z_d,dot_z_d,ddot_z_d,dddot_z_d]=rectilinear_path_convex(s_d,dot_s_d,ddot_s_d,dddot_s_d,z0,zf);
+    % The velocity with which the drone executes the trajectory
+    vel = 0.3;
+
+    % The duration of the trajectory depends on the distance and the
+    % velocity
+    trajectory_duration = norm([xf,yf]-[x0,y0])/vel;
+    ttot = trajectory_duration; % duration = norm / velocity
+
+    % The duration of the steady state
+    % After the trajectory has been executed
+    tdead = trajectory_duration/3; 
+
+    % The total time since t=0 to the last trajectory
+    totalTime = totalTime + ttot + tdead;
+    
+    % Compute the s(t)
+    [s_d,dot_s_d,ddot_s_d,dddot_s_d,tot_time,t] = planner2(Ts,t_iniz,ttot,tdead);
+    
+    % Build the time vector to plot the trajectory since t=0
+    t = t+totalTime;
+    time_vec = [time_vec, t];
+
+    % Compute the i-th primitive
+    [x_d_new,dot_x_d_new,ddot_x_d_new,dddot_x_d_new] = rectilinear_path_convex(s_d,dot_s_d,ddot_s_d,dddot_s_d,x0,xf);
+    [y_d_new,dot_y_d_new,ddot_y_d_new,dddot_y_d_new] = rectilinear_path_convex(s_d,dot_s_d,ddot_s_d,dddot_s_d,y0,yf);
+    [z_d_new,dot_z_d_new,ddot_z_d_new,dddot_z_d_new] = rectilinear_path_convex(s_d,dot_s_d,ddot_s_d,dddot_s_d,z0,zf);
+    [psi_d_new,dot_psi_d_new,ddot_psi_d_new,dddot_psi_d_new] = rectilinear_path_convex(s_d,dot_s_d,ddot_s_d,dddot_s_d,0,deg2rad(0));
+    
+    % Put all the primitives since t=0 in one vector
+    x_d = [x_d, x_d_new];
+    dot_x_d = [dot_x_d, dot_x_d_new];
+    ddot_x_d = [ddot_x_d, ddot_x_d_new];
+    dddot_x_d = [dddot_x_d, dddot_x_d_new];
+
+    y_d = [y_d, y_d_new];
+    dot_y_d = [dot_y_d, dot_y_d_new];
+    ddot_y_d = [ddot_y_d, ddot_y_d_new];
+    dddot_y_d = [dddot_y_d, dddot_y_d_new];
+
+    z_d = [z_d, z_d_new];
+    dot_z_d = [dot_z_d, dot_z_d_new];
+    ddot_z_d = [ddot_z_d, ddot_z_d_new];
+    dddot_z_d = [dddot_z_d, dddot_z_d_new];
+
+    psi_d = [psi_d, psi_d_new];
+    dot_psi_d = [dot_psi_d, dot_psi_d_new];
+    ddot_psi_d = [ddot_psi_d, ddot_psi_d_new];
+    dddot_psi_d = [dddot_psi_d, dddot_psi_d_new];
+
+end
 
 p_d=[x_d;y_d;z_d];
 dot_p_d=[dot_x_d;dot_y_d;dot_z_d];
 ddot_p_d=[ddot_x_d;ddot_y_d;ddot_z_d];
-
-% [p_d,dot_p_d,ddot_p_d] = circular_path_temp(s_d,dot_s_d,ddot_s_d,[x0,y0,z0],1,alfa);
 
 %data for Simulink
 pos_0 = [x0 y0 z0];
@@ -52,14 +104,14 @@ w_bb_0 = [0 0 0];
 csi_d=p_d(1:3,:); dot_csi_d=dot_p_d(1:3,:); ddot_csi_d=ddot_p_d(1:3,:);
 
 figure
-plot(t,p_d);
+plot(time_vec,p_d);
 legend
 
 figure
-plot(t,dot_p_d)
+plot(time_vec,dot_p_d)
 
 figure
-plot(t,ddot_p_d)
+plot(time_vec,ddot_p_d)
 
 % figure
 % plot(t,dddot_p_d)
